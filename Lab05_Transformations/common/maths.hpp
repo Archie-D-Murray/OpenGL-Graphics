@@ -2,7 +2,7 @@
 #include <glm/glm.hpp>
     namespace Maths {
     static glm::mat4 scale(const glm::vec3 &scale) {
-        glm::mat4 scaleMat;
+        glm::mat4 scaleMat = glm::mat4(1.0f);
         scaleMat[0][0] = scale.x;
         scaleMat[1][1] = scale.y;
         scaleMat[2][2] = scale.z;
@@ -10,7 +10,7 @@
     }
 
     static glm::mat4 rotate(const glm::vec3 &axis, float angle) {
-        glm::mat4 rotateMat;
+        glm::mat4 rotateMat = glm::mat4(0.0f);
         float sin = sinf(angle);
         float cos = cosf(angle);
         float xx = axis.x * axis.x, yy = axis.y * axis.y, zz = axis.z * axis.z;
@@ -30,7 +30,7 @@
     }
 
     static glm::mat4 translate(const glm::vec3 &translation) {
-        glm::mat4 translateMat;
+        glm::mat4 translateMat = glm::mat4(1.0f);
         translateMat[3][0] = translation.x;
         translateMat[3][1] = translation.y;
         translateMat[3][2] = translation.z;
