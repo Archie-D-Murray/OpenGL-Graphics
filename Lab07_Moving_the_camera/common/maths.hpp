@@ -17,6 +17,8 @@ namespace Maths {
 
     glm::mat4 translate(const glm::vec3 &translation);
 
+    glm::mat4 lookAt(glm::vec3 position, glm::vec3 target, glm::vec3 worldUp);
+
     float yaw(glm::vec3 angles);
     float pitch(glm::vec3 angles);
     float roll(glm::vec3 angles);
