@@ -1,3 +1,6 @@
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 
 #include <GL/glew.h>
@@ -52,7 +55,7 @@ int main( void ) {
     // -------------------------------------------------------------------------
     // End of window creation
     // =========================================================================
-    
+
     // Ensure we can capture keyboard inputs
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
     
@@ -120,7 +123,7 @@ int main( void ) {
 
     glm::mat4 translate = Maths::translate({ 0.3f, 0.4f, 0.0f});
     glm::mat4 rotate = Maths::rotate({ 0.0f, 0.0f, 1.0f}, glm::radians(45.0f));
-    glm::mat4 scale = Maths::scale({ 0.5f, 1.0f, 1.0f});
+    glm::mat4 scale = Maths::scale({ 0.4f, 0.3f, 1.0f});
     GLuint transformationID = glGetUniformLocation(shaderID, "transformation");
 
     
@@ -148,7 +151,7 @@ int main( void ) {
         // Define the translation matrix
         // Send the transformation matrix to the shader
         glm::mat4 transformation = translate * rotate * scale;
-        glUniformMatrix4fv(transformationID, 1, GL_FALSE, &transformation[0][0]);
+        glUniformMatrix4fv(transformationID, 1, GL_FALSE, glm::value_ptr(transformation));
 
         /*GLuint transformID = glGetUniformLocation(shaderID, "transformation");*/
         /*glm::mat4 translate;*/

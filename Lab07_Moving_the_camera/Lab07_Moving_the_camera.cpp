@@ -1,15 +1,21 @@
+#include <glm/common.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/geometric.hpp>
+#include <glm/gtx/io.hpp>
 #include <iostream>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#include <common/shader.hpp>
-#include <common/texture.hpp>
-#include <common/maths.hpp>
-#include <common/camera.hpp>
+#include "common/shader.hpp"
+#include "common/texture.hpp"
+#include "common/maths.hpp"
+#include "common/camera.hpp"
 
 // Function prototypes
-void keyboardInput(GLFWwindow *window);
+glm::vec2 keyboardInput(GLFWwindow *window);
+glm::vec2 mouseInput(GLFWwindow *window);
 
 // Create camera object
 Camera camera(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f));
@@ -55,6 +61,7 @@ int main( void )
         return -1;
     }
     glfwMakeContextCurrent(window);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // Initialize GLEW
     glewExperimental = true; // Needed for core profile
@@ -70,6 +77,7 @@ int main( void )
     
     // Enable depth test
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
     
     // Ensure we can capture keyboard inputs
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
@@ -240,12 +248,31 @@ int main( void )
         object.angle    = Maths::radians(20.0f * i);
         objects.push_back(object);
     }
-    
+    float dt;
+    float lastFrameTime = 0;
+    camera.updateCameraVectors();
+
+    glm::mat4 view = glm::lookAt(glm::vec3 { 1, 1, 1}, glm::vec3 { 0, 0, -2 }, glm::vec3 { 0, 1, 0 });
+    glm::mat4 projection = glm::perspective(Maths::radians(45), 1024.0f / 768.0f, 0.0f, 10.0f);
+
+
+
     // Render loop
     while (!glfwWindowShouldClose(window))
     {
+        dt = glfwGetTime() - lastFrameTime;
+        lastFrameTime = glfwGetTime();
         // Get inputs
-        keyboardInput(window);
+        glm::vec2 input = keyboardInput(window);
+        glm::vec2 mouseDelta = mouseInput(window);
+
+        camera.yaw += 0.0005f * mouseDelta.x;
+        camera.pitch += 0.0005f * mouseDelta.y;
+
+        camera.updateCameraVectors();
+
+        camera.position += camera.forward * input.y * dt;
+        camera.position += camera.right * input.x * dt;
         
         // Clear the window
         glClearColor(0.2f, 0.2f, 0.2f, 0.0f);
@@ -270,7 +297,7 @@ int main( void )
             // Calculate the model matrix
             glm::mat4 translate = Maths::translate(objects[i].position);
             glm::mat4 scale     = Maths::scale(objects[i].scale);
-            glm::mat4 rotate    = Maths::rotate(objects[i].angle, objects[i].rotation);
+            glm::mat4 rotate    = Maths::rotate(objects[i].rotation, objects[i].angle);
             glm::mat4 model     = translate * rotate * scale;
 
             // Calculate the MVP matrix
@@ -278,7 +305,7 @@ int main( void )
 
             // Send MVP matrix to the vertex shader
             unsigned int MVPID = glGetUniformLocation(shaderID, "MVP");
-            glUniformMatrix4fv(MVPID, 1, GL_FALSE, &MVP[0][0]);
+            glUniformMatrix4fv(MVPID, 1, GL_FALSE, glm::value_ptr(MVP));
 
             // Draw the triangles
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
@@ -305,8 +332,19 @@ int main( void )
     return 0;
 }
 
-void keyboardInput(GLFWwindow *window)
+glm::vec2 keyboardInput(GLFWwindow *window)
 {
+    glm::vec2 input { 0 };
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+    input.y = glfwGetKey(window, GLFW_KEY_W) - glfwGetKey(window, GLFW_KEY_S);
+    input.x = glfwGetKey(window, GLFW_KEY_D) - glfwGetKey(window, GLFW_KEY_A);
+    return glm::clamp(input, glm::vec2 { 0 }, glm::normalize(input));
+}
+
+glm::vec2 mouseInput(GLFWwindow* window) {
+    double x = 0, y = 0;
+    glfwGetCursorPos(window, &x, &y);
+    glfwSetCursorPos(window, 1024.0/2, 768.0/2);
+    return { x - 1024.0 * 0.5, 768 * 0.5 - y };
 }

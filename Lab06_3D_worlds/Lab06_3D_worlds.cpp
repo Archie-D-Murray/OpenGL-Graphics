@@ -1,16 +1,20 @@
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/trigonometric.hpp>
 #include <iostream>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <common/shader.hpp>
-#include <common/texture.hpp>
-#include <common/maths.hpp>
-#include <common/camera.hpp>
+#include "common/shader.hpp"
+#include "common/texture.hpp"
+#include "common/maths.hpp"
+#include "common/camera.hpp"
+#include "object.hpp"
 
 // Function prototypes
-void keyboardInput(GLFWwindow *window);
+void keyboardInput(GLFWwindow *window, Camera& camera);
 
 int main( void )
 {
@@ -161,6 +165,10 @@ int main( void )
         24, 25, 26, 27, 28, 29,     // bottom
         30, 31, 32, 33, 34, 35      // top
     };
+
+    glm::mat4 view = glm::lookAt(glm::vec3 { 1, 1, 1}, glm::vec3 { 0, 0, -2 }, glm::vec3 { 0, 1, 0 });
+    glm::mat4 projection = glm::ortho(-2.0f, 2.0f, -2.0f, 2.0f, 0.0f, 10.0f);
+
     
     // Create the Vertex Array Object (VAO)
     unsigned int VAO;
@@ -184,6 +192,7 @@ int main( void )
     glGenBuffers(1, &EBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
     
     // Compile shader program
     unsigned int shaderID;
@@ -191,23 +200,65 @@ int main( void )
     
     // Load the textures
     unsigned int texture;
-    texture = loadTexture("../assets/crate.jpg");
+    texture = loadTexture("../assets/kratos.png");
     
     // Send the texture uniforms to the fragment shader
     glUseProgram(shaderID);
+    glEnable(GL_DEPTH_TEST);
     unsigned int textureID;
     textureID = glGetUniformLocation(shaderID, "texture");
+    unsigned int modelID = glGetUniformLocation(shaderID, "MVP");
     glUniform1i(textureID, 0);
+
+    const glm::vec3 cameraPos = { 1.0f, 1.0f, 1.0f };
+    Camera camera = Camera(cameraPos, { 0.0f, 0.0f, -2.0f });
+
+    glm::vec3 positions[] = {
+        glm::vec3( 0.0f,  0.0f,  0.0f),
+        glm::vec3( 2.0f,  5.0f, -10.0f),
+        glm::vec3(-3.0f, -2.0f, -3.0f),
+        glm::vec3(-4.0f, -2.0f, -8.0f),
+        glm::vec3( 2.0f,  2.0f, -6.0f),
+        glm::vec3(-4.0f,  3.0f, -8.0f),
+        glm::vec3( 0.0f, -2.0f, -5.0f),
+        glm::vec3( 4.0f,  2.0f, -4.0f),
+        glm::vec3( 2.0f,  0.0f, -2.0f),
+        glm::vec3(-1.0f,  1.0f, -2.0f)
+    };
+
+    std::vector<Object> objects;
+    Object object;
+    object.name = "Cube";
+    for (size_t i = 0; i < 10; i++) {
+        object.position = positions[i];
+        object.rotationAxis = glm::vec3 { 1, 1, 1 };
+        object.scale = glm::vec3 { 0.5f, 0.5f, 0.5f };
+        object.angle = 0.0f;
+        objects.push_back(object);
+    }
+
+    camera.position = { 0.0f, 0.0f, 0.5f };
+    camera.target = objects[7].position;
+
+    float dt = 0;
+    float lastFrameTime = 0;
     
     // Render loop
     while (!glfwWindowShouldClose(window))
     {
         // Get inputs
-        keyboardInput(window);
+        keyboardInput(window, camera);
+        dt = glfwGetTime() - lastFrameTime;
+        lastFrameTime = glfwGetTime();
+
+        float cameraAngle = Maths::radians(45.0f * glfwGetTime());
+        camera.position = camera.target + glm::vec3 { cos(cameraAngle), 0.5f, sin(cameraAngle) } * 5.0f;
+        camera.calculateMatrices();
+
         
         // Clear the window
         glClearColor(0.2f, 0.2f, 0.2f, 0.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Send the VBO to the GPU
         glEnableVertexAttribArray(0);
@@ -218,10 +269,24 @@ int main( void )
         glEnableVertexAttribArray(1);
         glBindBuffer(GL_ARRAY_BUFFER, uvBuffer);
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
-        
-        // Draw the triangles
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, 0);
+
+        for (size_t i = 0; i < objects.size(); i++) {
+            glm::mat4 translate = Maths::translate(objects[i].position);
+            if (i % 2 != 0) {
+                objects[i].angle += Maths::radians(120.0f * dt);
+            }
+            glm::mat4 rotation  = Maths::rotate(objects[i].rotationAxis, objects[i].angle);
+            glm::mat4 scale     = Maths::scale(objects[i].scale);
+
+            glm::mat4 model = translate * rotation * scale;
+
+            glm::mat4 mvp = camera.projection * camera.view * model;
+            glUniformMatrix4fv(modelID, 1, GL_FALSE, glm::value_ptr(mvp));
+            
+            // Draw the triangles
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+            glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, 0);
+        }
         
         glDisableVertexAttribArray(0);
         glDisableVertexAttribArray(1);
@@ -243,8 +308,15 @@ int main( void )
     return 0;
 }
 
-void keyboardInput(GLFWwindow *window)
-{
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+void keyboardInput(GLFWwindow *window, Camera& camera) {
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
+    }
+    if (glfwGetKey(window, GLFW_KEY_UP)) {
+        camera.fov -= Maths::radians(5.0f);
+        camera.fov = fmaxf(Maths::radians(10.0f), camera.fov);
+    } else if (glfwGetKey(window, GLFW_KEY_DOWN)) {
+        camera.fov += Maths::radians(5.0f);
+        camera.fov = fminf(Maths::radians(90.0f), camera.fov);
+    }
 }
