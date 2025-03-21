@@ -4,11 +4,11 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#include <common/shader.hpp>
-#include <common/texture.hpp>
-#include <common/maths.hpp>
-#include <common/camera.hpp>
-#include <common/model.hpp>
+#include "common/shader.hpp"
+#include "common/texture.hpp"
+#include "common/maths.hpp"
+#include "common/camera.hpp"
+#include "common/model.hpp"
 
 // Function prototypes
 void keyboardInput(GLFWwindow *window);
@@ -74,7 +74,6 @@ int main( void )
     // -------------------------------------------------------------------------
     // End of window creation
     // =========================================================================
-    
     // Enable depth test
     glEnable(GL_DEPTH_TEST);
     
@@ -99,10 +98,14 @@ int main( void )
     
     // Load models
     Model teapot("../assets/teapot.obj");
+    std::cout << "Loaded teapot\n";
     Model sphere("../assets/sphere.obj");
+    std::cout << "Loaded models\n";
     
     // Load the textures
     teapot.addTexture("../assets/blue.bmp", "diffuse");
+    std::cout << "Added textures\n";
+    // teapot.ka = 0.2f;
     
     // Use wireframe rendering (comment out to turn off)
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -127,13 +130,13 @@ int main( void )
         glUseProgram(shaderID);
         
         // Calculate view and projection matrices
-        camera.target = camera.eye + camera.front;
+        camera.calculateCameraVectors();
         camera.calculateMatrices();
 
         // Calculate the model matrix
-        glm::mat4 translate;
-        glm::mat4 scale;
-        glm::mat4 rotate;
+        glm::mat4 translate = Maths::translate(glm::vec3{0});
+        glm::mat4 scale = Maths::scale(glm::vec3 { 1.0f, 1.0f, 1.0f });
+        glm::mat4 rotate = glm::mat4(1.0f);
         glm::mat4 model = translate * rotate * scale;
 
         // Calculate the MVP matrix
@@ -166,16 +169,16 @@ void keyboardInput(GLFWwindow *window)
     
     // Move the camera using WSAD keys
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.eye += 5.0f * deltaTime * camera.front;
+        camera.position += 5.0f * deltaTime * camera.forward;
 
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.eye -= 5.0f * deltaTime * camera.front;
+        camera.position -= 5.0f * deltaTime * camera.forward;
 
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.eye -= 5.0f * deltaTime * camera.right;
+        camera.position -= 5.0f * deltaTime * camera.right;
 
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.eye += 5.0f * deltaTime * camera.right;
+        camera.position += 5.0f * deltaTime * camera.right;
 }
 
 void mouseInput(GLFWwindow *window)
