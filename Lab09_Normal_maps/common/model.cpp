@@ -10,13 +10,13 @@
 #include "model.hpp"
 #include "stb_image.hpp"
 
-Model::Model(const char *path) : textures(0), vertices(), normals(), uvs()
-{
+Model::Model(const char *path) {
+    textures = std::vector<Texture>();
     // Load object
     bool res = loadObj(path, vertices, uvs, normals);
     // Setup buffers
+    calculateNormals();
     setupBuffers();
-    textures = std::vector<Texture>();
 }
 
 void Model::draw(unsigned int &shaderID)
@@ -52,22 +52,27 @@ void Model::setupBuffers()
     glBindVertexArray(VAO);
     
     // Create Vertex Buffer Object
-    unsigned int vertexBuffer;
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
     
     // Create uv buffer
-    unsigned int uvBuffer;
     glGenBuffers(1, &uvBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, uvBuffer);
     glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec2), &uvs[0], GL_STATIC_DRAW);
     
     // Create normal buffer
-    unsigned int normalBuffer;
     glGenBuffers(1, &normalBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, normalBuffer);
     glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), &normals[0], GL_STATIC_DRAW);
+
+    glGenBuffers(1, &tangentBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, tangentBuffer);
+    glBufferData(GL_ARRAY_BUFFER, tangents.size() * sizeof(glm::vec3), tangents.data(), GL_STATIC_DRAW);
+
+    glGenBuffers(1, &bitangentBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, bitangentBuffer);
+    glBufferData(GL_ARRAY_BUFFER, bitangents.size() * sizeof(glm::vec3), bitangents.data(), GL_STATIC_DRAW);
     
     // Bind the vertex buffer
     glEnableVertexAttribArray(0);
@@ -83,7 +88,15 @@ void Model::setupBuffers()
     glEnableVertexAttribArray(2);
     glBindBuffer(GL_ARRAY_BUFFER, normalBuffer);
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-    
+
+    glEnableVertexAttribArray(3);
+    glBindBuffer(GL_ARRAY_BUFFER, tangentBuffer);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+    glEnableVertexAttribArray(4);
+    glBindBuffer(GL_ARRAY_BUFFER, bitangentBuffer);
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
      // Unbind the VAO
     glBindVertexArray(0);
 }
@@ -256,4 +269,23 @@ unsigned int Model::loadTexture(const char *path)
     }
 
     return textureID;
+}
+
+void Model::calculateNormals() {
+    for (size_t i = 0; i < vertices.size(); i += 3) {
+        glm::vec3 e1 = vertices[i + 1] - vertices[i + 0];
+        glm::vec3 e2 = vertices[i + 2] - vertices[i + 1];
+        glm::vec2 dU = { uvs[i + 2].x - uvs[i + 1].x , uvs[i + 2].y - uvs[i + 1].y };
+        glm::vec2 dV = { uvs[i + 2].x - uvs[i + 1].x , uvs[i + 2].y - uvs[i + 1].y };
+        float denom = 1.0f / (dU.x * dV.y - dU.y * dV.x);
+        glm::vec3 tangent = (dV.y * e1 - dV.x * e2) * denom;
+        glm::vec3 bitangent = (dU.x * e2 - dU.y * e1) * denom;
+
+        tangents.push_back(tangent);
+        tangents.push_back(tangent);
+        tangents.push_back(tangent);
+        bitangents.push_back(bitangent);
+        bitangents.push_back(bitangent);
+        bitangents.push_back(bitangent);
+    }
 }

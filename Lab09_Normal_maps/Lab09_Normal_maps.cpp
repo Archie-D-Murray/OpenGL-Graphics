@@ -3,13 +3,14 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 
-#include <common/shader.hpp>
-#include <common/texture.hpp>
-#include <common/maths.hpp>
-#include <common/camera.hpp>
-#include <common/model.hpp>
-#include <common/light.hpp>
+#include "common/shader.hpp"
+#include "common/texture.hpp"
+#include "common/maths.hpp"
+#include "common/camera.hpp"
+#include "common/model.hpp"
+#include "common/light.hpp"
 
 // Function prototypes
 void keyboardInput(GLFWwindow *window);
@@ -91,9 +92,7 @@ int main( void )
     glfwSetCursorPos(window, 1024 / 2, 768 / 2);
     
     // Compile shader program
-    unsigned int shaderID, lightShaderID;
-    shaderID      = LoadShaders("vertexShader.glsl", "fragmentShader.glsl");
-    lightShaderID = LoadShaders("lightVertexShader.glsl", "lightFragmentShader.glsl");
+    unsigned int shaderID = LoadShaders("vertexShader.glsl", "fragmentShader.glsl");
     
     // Activate shader
     glUseProgram(shaderID);
@@ -104,6 +103,7 @@ int main( void )
     
     // Load the textures
     teapot.addTexture("../assets/blue.bmp", "diffuse");
+    teapot.addTexture("../assets/diamond_normal.png", "normal");
     
     // Define teapot object lighting properties
     teapot.ka = 0.2f;
@@ -128,7 +128,7 @@ int main( void )
                               std::cos(Maths::radians(45.0f)));     // cos(phi)
     
     lightSources.addDirectionalLight(glm::vec3(1.0f, -1.0f, 0.0f),  // direction
-                                     glm::vec3(1.0f, 1.0f, 0.0f));  // colour
+                                     glm::vec3(1.0f, 1.0f, 1.0f));  // colour
     
     // Teapot positions
     glm::vec3 teapotPositions[] = {
@@ -174,7 +174,7 @@ int main( void )
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         // Calculate view and projection matrices
-        camera.target = camera.eye + camera.front;
+        camera.target = camera.position + camera.forward;
         camera.calculateMatrices();
         
         // Activate shader
@@ -204,7 +204,7 @@ int main( void )
         }
         
         // Draw light sources
-        lightSources.draw(lightShaderID, camera.view, camera.projection, sphere);
+        lightSources.draw(shaderID, camera.view, camera.projection, sphere);
         
         // Swap buffers
         glfwSwapBuffers(window);
@@ -227,16 +227,16 @@ void keyboardInput(GLFWwindow *window)
     
     // Move the camera using WSAD keys
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.eye += 5.0f * deltaTime * camera.front;
+        camera.position += 5.0f * deltaTime * camera.forward;
 
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.eye -= 5.0f * deltaTime * camera.front;
+        camera.position -= 5.0f * deltaTime * camera.forward;
 
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.eye -= 5.0f * deltaTime * camera.right;
+        camera.position -= 5.0f * deltaTime * camera.right;
 
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.eye += 5.0f * deltaTime * camera.right;
+        camera.position += 5.0f * deltaTime * camera.right;
 }
 
 void mouseInput(GLFWwindow *window)
