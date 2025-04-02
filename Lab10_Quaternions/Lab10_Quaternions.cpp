@@ -4,12 +4,12 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#include <common/shader.hpp>
-#include <common/texture.hpp>
-#include <common/maths.hpp>
-#include <common/camera.hpp>
-#include <common/model.hpp>
-#include <common/light.hpp>
+#include "common/shader.hpp"
+#include "common/texture.hpp"
+#include "common/maths.hpp"
+#include "common/camera.hpp"
+#include "common/model.hpp"
+#include "common/light.hpp"
 
 // Function prototypes
 void keyboardInput(GLFWwindow *window);
@@ -103,18 +103,23 @@ int main( void )
     Model sphere("../assets/sphere.obj");
     
     // Load the textures
-    cube.addTexture("../assets/crate.jpg", "diffuse");
+    cube.addTexture("../assets/blue.bmp", "diffuse");
+    cube.addTexture("../assets/diamond_normal.png", "normal");
     
     // Define cube object lighting properties
-    cube.ka = 1.0f;
-    cube.kd = 0.0f;
-    cube.ks = 0.0f;
+    cube.ka = 0.2f;
+    cube.kd = 0.7f;
+    cube.ks = 1.0f;
     cube.Ns = 20.0f;
     
     // Add light sources
     Light lightSources;
     lightSources.addDirectionalLight(glm::vec3(1.0f, -1.0f, 0.0f),  // direction
                                      glm::vec3(1.0f, 1.0f, 0.0f));  // colour
+
+    // lightSources.addPointLight(glm::vec3(2.0f, 2.0f, 2.0f),         // position
+    //                            glm::vec3(1.0f, 1.0f, 1.0f),         // colour
+    //                            1.0f, 0.1f, 0.02f);                  // attenuation
     
     // Cube positions
     glm::vec3 positions[] = {
@@ -150,7 +155,7 @@ int main( void )
         float time   = glfwGetTime();
         deltaTime    = time - previousTime;
         previousTime = time;
-        
+
         // Get inputs
         keyboardInput(window);
         mouseInput(window);
@@ -160,7 +165,7 @@ int main( void )
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         // Calculate view and projection matrices
-        camera.target = camera.eye + camera.front;
+        camera.target = camera.position + camera.forward;
         camera.calculateMatrices();
         
         // Activate shader
@@ -178,7 +183,7 @@ int main( void )
             // Calculate model matrix
             glm::mat4 translate = Maths::translate(objects[i].position);
             glm::mat4 scale     = Maths::scale(objects[i].scale);
-            glm::mat4 rotate    = Maths::rotate(objects[i].angle, objects[i].rotation);
+            glm::mat4 rotate    = Maths::rotate(objects[i].rotation, objects[i].angle);
             glm::mat4 model     = translate * rotate * scale;
             
             // Send the MVP and MV matrices to the vertex shader
@@ -216,16 +221,16 @@ void keyboardInput(GLFWwindow *window)
     
     // Move the camera using WSAD keys
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.eye += 5.0f * deltaTime * camera.front;
+        camera.position += 1.0f * deltaTime * camera.forward;
 
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.eye -= 5.0f * deltaTime * camera.front;
+        camera.position -= 1.0f * deltaTime * camera.forward;
 
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.eye -= 5.0f * deltaTime * camera.right;
+        camera.position -= 1.0f * deltaTime * camera.right;
 
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.eye += 5.0f * deltaTime * camera.right;
+        camera.position += 1.0f * deltaTime * camera.right;
 }
 
 void mouseInput(GLFWwindow *window)
@@ -236,8 +241,8 @@ void mouseInput(GLFWwindow *window)
     glfwSetCursorPos(window, 1024 / 2, 768 / 2);
     
     // Update yaw and pitch angles
-    camera.yaw   += 0.005f * float(xPos - 1024 / 2);
-    camera.pitch += 0.005f * float(768 / 2 - yPos);
+    camera.yaw   += +0.0075f * deltaTime * float(xPos - 1024 / 2);
+    camera.pitch += +0.0075f * deltaTime * float(768 / 2 - yPos);
     
     // Calculate camera vectors from the yaw and pitch angles
     camera.calculateCameraVectors();

@@ -4,6 +4,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include <glm/gtx/io.hpp>
 
 #include "common/shader.hpp"
 #include "common/texture.hpp"
@@ -93,6 +94,7 @@ int main( void )
     
     // Compile shader program
     unsigned int shaderID = LoadShaders("vertexShader.glsl", "fragmentShader.glsl");
+    unsigned int lightShaderID = LoadShaders("./lightVertexShader.glsl", "./lightFragmentShader.glsl");
     
     // Activate shader
     glUseProgram(shaderID);
@@ -156,6 +158,8 @@ int main( void )
         object.angle    = Maths::radians(20.0f * i);
         objects.push_back(object);
     }
+
+    camera.target = objects[0].position;
     
     // Render loop
     while (!glfwWindowShouldClose(window))
@@ -176,7 +180,7 @@ int main( void )
         // Calculate view and projection matrices
         camera.target = camera.position + camera.forward;
         camera.calculateMatrices();
-        
+
         // Activate shader
         glUseProgram(shaderID);
         
@@ -191,10 +195,12 @@ int main( void )
             glm::mat4 scale     = Maths::scale(objects[i].scale);
             glm::mat4 rotate    = Maths::rotate(objects[i].angle, objects[i].rotation);
             glm::mat4 model     = translate * rotate * scale;
+
             
             // Send the MVP and MV matrices to the vertex shader
             glm::mat4 MV  = camera.view * model;
             glm::mat4 MVP = camera.projection * MV;
+
             glUniformMatrix4fv(glGetUniformLocation(shaderID, "MVP"), 1, GL_FALSE, &MVP[0][0]);
             glUniformMatrix4fv(glGetUniformLocation(shaderID, "MV"), 1, GL_FALSE, &MV[0][0]);
             
@@ -202,9 +208,11 @@ int main( void )
             if (objects[i].name == "teapot")
                 teapot.draw(shaderID);
         }
+
+        glUseProgram(lightShaderID);
         
         // Draw light sources
-        lightSources.draw(shaderID, camera.view, camera.projection, sphere);
+        lightSources.draw(lightShaderID, camera.view, camera.projection, sphere);
         
         // Swap buffers
         glfwSwapBuffers(window);
@@ -214,6 +222,7 @@ int main( void )
     // Cleanup
     teapot.deleteBuffers();
     glDeleteProgram(shaderID);
+    glDeleteProgram(lightShaderID);
     
     // Close OpenGL window and terminate GLFW
     glfwTerminate();
@@ -247,8 +256,8 @@ void mouseInput(GLFWwindow *window)
     glfwSetCursorPos(window, 1024 / 2, 768 / 2);
     
     // Update yaw and pitch angles
-    camera.yaw   += 0.005f * float(xPos - 1024 / 2);
-    camera.pitch += 0.005f * float(768 / 2 - yPos);
+    camera.yaw   += 0.005f * deltaTime * float(xPos - 1024 / 2);
+    camera.pitch += 0.005f * deltaTime * float(768 / 2 - yPos);
     
     // Calculate camera vectors from the yaw and pitch angles
     camera.calculateCameraVectors();
