@@ -106,6 +106,8 @@ void Model::deleteBuffers()
     glDeleteBuffers(1, &vertexBuffer);
     glDeleteBuffers(1, &uvBuffer);
     glDeleteBuffers(1, &normalBuffer);
+    glDeleteBuffers(1, &bitangentBuffer);
+    glDeleteBuffers(1, &tangentBuffer);
     glDeleteVertexArrays(1, &VAO);
 }
 

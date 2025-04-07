@@ -7,7 +7,8 @@
 
 Camera::Camera(const glm::vec3 position, const glm::vec3 target) :
     position(position),
-    target(target)
+    target(target),
+    orientation(pitch, yaw)
 {}
 
 void Camera::calculateMatrices() {
@@ -19,7 +20,6 @@ void Camera::calculateCameraVectors() {
     forward = glm::vec3(cosf(yaw) * cosf(pitch), sinf(pitch), sinf(yaw) * cosf(pitch));
     right = glm::normalize(glm::cross(forward, worldUp));
     up = glm::cross(right, forward);
-    target = position + forward;
 }
 
 void Camera::quaternionCamera(float dt) {
@@ -31,4 +31,5 @@ void Camera::quaternionCamera(float dt) {
     right   =  glm::vec3(view[0][0], view[1][0], view[2][0]);
     up      =  glm::vec3(view[0][1], view[1][1], view[2][1]);
     forward = -glm::vec3(view[0][2], view[1][2], view[2][2]);
+    target = position + forward;
 }

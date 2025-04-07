@@ -99,27 +99,27 @@ int main( void )
     glUseProgram(shaderID);
     
     // Load models
-    Model cube("../assets/cube.obj");
+    Model teapot("../assets/teapot.obj");
     Model sphere("../assets/sphere.obj");
     
     // Load the textures
-    cube.addTexture("../assets/blue.bmp", "diffuse");
-    cube.addTexture("../assets/diamond_normal.png", "normal");
+    teapot.addTexture("../assets/bricks_diffuse.png", "diffuse");
+    teapot.addTexture("../assets/bricks_normal.png", "normal");
     
     // Define cube object lighting properties
-    cube.ka = 0.2f;
-    cube.kd = 0.7f;
-    cube.ks = 1.0f;
-    cube.Ns = 20.0f;
+    teapot.ka = 0.2f;
+    teapot.kd = 0.7f;
+    teapot.ks = 1.0f;
+    teapot.Ns = 20.0f;
     
     // Add light sources
     Light lightSources;
     lightSources.addDirectionalLight(glm::vec3(1.0f, -1.0f, 0.0f),  // direction
                                      glm::vec3(1.0f, 1.0f, 0.0f));  // colour
 
-    // lightSources.addPointLight(glm::vec3(2.0f, 2.0f, 2.0f),         // position
-    //                            glm::vec3(1.0f, 1.0f, 1.0f),         // colour
-    //                            1.0f, 0.1f, 0.02f);                  // attenuation
+    lightSources.addPointLight(glm::vec3(2.0f, 2.0f, 2.0f),         // position
+                               glm::vec3(1.0f, 1.0f, 1.0f),         // colour
+                               1.0f, 0.1f, 0.02f);                  // attenuation
     
     // Cube positions
     glm::vec3 positions[] = {
@@ -147,6 +147,9 @@ int main( void )
         object.angle    = Maths::radians(20.0f * i);
         objects.push_back(object);
     }
+
+    camera.target = objects[0].position;
+    camera.calculateCameraVectors();
     
     // Render loop
     while (!glfwWindowShouldClose(window))
@@ -165,17 +168,13 @@ int main( void )
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         // Calculate view and projection matrices
-        camera.target = camera.position + camera.forward;
-        camera.calculateMatrices();
+        camera.quaternionCamera(deltaTime);
         
         // Activate shader
         glUseProgram(shaderID);
         
         // Send light source properties to the shader
         lightSources.toShader(shaderID, camera.view);
-        
-        // Send view matrix to the shader
-        glUniformMatrix4fv(glGetUniformLocation(shaderID, "V"), 1, GL_FALSE, &camera.view[0][0]);
         
         // Loop through objects
         for (unsigned int i = 0; i < static_cast<unsigned int>(objects.size()); i++)
@@ -194,7 +193,7 @@ int main( void )
             
             // Draw the model
             if (objects[i].name == "cube")
-                cube.draw(shaderID);
+                teapot.draw(shaderID);
         }
         
         // Draw light sources
@@ -206,7 +205,7 @@ int main( void )
     }
     
     // Cleanup
-    cube.deleteBuffers();
+    teapot.deleteBuffers();
     glDeleteProgram(shaderID);
     
     // Close OpenGL window and terminate GLFW
